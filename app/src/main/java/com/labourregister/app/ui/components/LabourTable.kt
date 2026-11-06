@@ -1,5 +1,7 @@
 package com.labourregister.app.ui.components
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -34,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -46,17 +49,17 @@ import com.labourregister.app.ui.theme.RegisterHeaderBg
 import com.labourregister.app.ui.theme.RegisterNavy
 import com.labourregister.app.ui.theme.RegisterRowAlternate
 import com.labourregister.app.ui.theme.RegisterSurface
+import com.labourregister.app.ui.theme.RegisterTeal
 import com.labourregister.app.ui.theme.RegisterTextPrimary
 import com.labourregister.app.ui.theme.RegisterTextSecondary
 import com.labourregister.app.viewmodel.LabourerField
 
-// Compact column widths designed to fit typical phone screens (368dp total)
-// in one glance with zero or minimal scrolling, while allowing names to wrap cleanly onto 2 lines
-private val ColWidthName = 106.dp
-private val ColWidthVillage = 84.dp
-private val ColWidthDailyCharge = 74.dp
-private val ColWidthMobile = 104.dp
-val TotalTableWidth = ColWidthName + ColWidthVillage + ColWidthDailyCharge + ColWidthMobile
+private val ColWidthName = 125.dp
+private val ColWidthSkill = 115.dp
+private val ColWidthVillage = 115.dp
+private val ColWidthDailyCharge = 80.dp
+private val ColWidthMobile = 115.dp
+val TotalTableWidth = ColWidthName + ColWidthSkill + ColWidthVillage + ColWidthDailyCharge + ColWidthMobile
 
 @Composable
 fun LabourTable(
@@ -98,7 +101,6 @@ fun LabourTable(
             .fillMaxSize()
             .border(1.dp, RegisterBorder, RoundedCornerShape(8.dp))
     ) {
-        // Horizontally scrollable container (safe for smaller screens or enlarged display zoom)
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -149,6 +151,8 @@ private fun TableHeaderRow() {
     ) {
         HeaderCell(text = "Name", width = ColWidthName)
         VerticalColumnDivider()
+        HeaderCell(text = "Skill", width = ColWidthSkill)
+        VerticalColumnDivider()
         HeaderCell(text = "Village", width = ColWidthVillage)
         VerticalColumnDivider()
         HeaderCell(text = "Charge (₹)", width = ColWidthDailyCharge, textAlign = TextAlign.Center)
@@ -166,7 +170,7 @@ private fun HeaderCell(
     Box(
         modifier = Modifier
             .width(width)
-            .padding(horizontal = 6.dp),
+            .padding(horizontal = 8.dp),
         contentAlignment = when (textAlign) {
             TextAlign.Center -> Alignment.Center
             TextAlign.End -> Alignment.CenterEnd
@@ -193,37 +197,50 @@ private fun TableRowItem(
     backgroundColor: Color,
     onCellDoubleTap: (LabourerEntity, LabourerField) -> Unit
 ) {
+    val context = LocalContext.current
+
     Row(
         modifier = Modifier
             .width(TotalTableWidth)
             .background(backgroundColor)
             .height(IntrinsicSize.Min)
-            .defaultMinSize(minHeight = 52.dp),
+            .defaultMinSize(minHeight = 56.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Column 1: Name (multiline wrap: e.g. first name on line 1, surname on line 2)
+        // Column 1: Name
         DataCell(
             text = labourer.name ?: "-",
             width = ColWidthName,
             isPlaceholder = labourer.name == null,
-            maxLines = 3,
+            maxLines = Int.MAX_VALUE,
             onDoubleTap = { onCellDoubleTap(labourer, LabourerField.NAME) }
         )
 
         VerticalColumnDivider()
 
-        // Column 2: Village (multiline wrap if needed)
+        // Column 2: Skill
+        DataCell(
+            text = labourer.skill ?: "-",
+            width = ColWidthSkill,
+            isPlaceholder = labourer.skill == null,
+            maxLines = Int.MAX_VALUE,
+            onDoubleTap = { onCellDoubleTap(labourer, LabourerField.SKILL) }
+        )
+
+        VerticalColumnDivider()
+
+        // Column 3: Village
         DataCell(
             text = labourer.village ?: "-",
             width = ColWidthVillage,
             isPlaceholder = labourer.village == null,
-            maxLines = 3,
+            maxLines = Int.MAX_VALUE,
             onDoubleTap = { onCellDoubleTap(labourer, LabourerField.VILLAGE) }
         )
 
         VerticalColumnDivider()
 
-        // Column 3: Daily Charge (e.g. "₹600")
+        // Column 4: Daily Charge
         DataCell(
             text = labourer.formattedDailyCharge,
             width = ColWidthDailyCharge,
@@ -235,12 +252,28 @@ private fun TableRowItem(
 
         VerticalColumnDivider()
 
-        // Column 4: Mobile Number
+        // Column 5: Mobile Number (TAP opens keypad dialer; DOUBLE-TAP edits)
+        val hasPhone = !labourer.mobileNumber.isNullOrBlank()
         DataCell(
             text = labourer.mobileNumber ?: "-",
             width = ColWidthMobile,
             isPlaceholder = labourer.mobileNumber == null,
+            textColor = if (hasPhone) RegisterTeal else null,
             maxLines = 2,
+            onTap = {
+                val number = labourer.mobileNumber
+                if (!number.isNullOrBlank()) {
+                    try {
+                        val dialIntent = Intent(Intent.ACTION_DIAL).apply {
+                            data = Uri.parse("tel:${Uri.encode(number.trim())}")
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        context.startActivity(dialIntent)
+                    } catch (e: Exception) {
+                        onCellDoubleTap(labourer, LabourerField.MOBILE_NUMBER)
+                    }
+                }
+            },
             onDoubleTap = { onCellDoubleTap(labourer, LabourerField.MOBILE_NUMBER) }
         )
     }
@@ -262,23 +295,29 @@ private fun DataCell(
     width: Dp,
     isPlaceholder: Boolean,
     textAlign: TextAlign = TextAlign.Start,
-    maxLines: Int = 2,
+    textColor: Color? = null,
+    maxLines: Int = Int.MAX_VALUE,
+    onTap: (() -> Unit)? = null,
     onDoubleTap: () -> Unit
 ) {
     val currentOnDoubleTap by rememberUpdatedState(onDoubleTap)
+    val currentOnTap by rememberUpdatedState(onTap)
 
     Box(
         modifier = Modifier
             .width(width)
             .fillMaxHeight()
-            .pointerInput(Unit) {
+            .pointerInput(text) {
                 detectTapGestures(
+                    onTap = {
+                        currentOnTap?.invoke()
+                    },
                     onDoubleTap = {
                         currentOnDoubleTap()
                     }
                 )
             }
-            .padding(horizontal = 6.dp, vertical = 6.dp),
+            .padding(horizontal = 8.dp, vertical = 8.dp),
         contentAlignment = when (textAlign) {
             TextAlign.Center -> Alignment.Center
             TextAlign.End -> Alignment.CenterEnd
@@ -288,14 +327,18 @@ private fun DataCell(
         Text(
             text = text,
             style = MaterialTheme.typography.bodyMedium.copy(
-                fontSize = 13.sp,
-                lineHeight = 16.sp,
-                color = if (isPlaceholder) RegisterTextSecondary.copy(alpha = 0.45f) else RegisterTextPrimary
+                fontSize = 12.5.sp,
+                lineHeight = 17.sp,
+                color = when {
+                    isPlaceholder -> RegisterTextSecondary.copy(alpha = 0.45f)
+                    textColor != null -> textColor
+                    else -> RegisterTextPrimary
+                }
             ),
             textAlign = textAlign,
             softWrap = true,
             maxLines = maxLines,
-            overflow = TextOverflow.Ellipsis
+            overflow = TextOverflow.Clip
         )
     }
 }

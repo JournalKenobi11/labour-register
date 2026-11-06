@@ -44,7 +44,7 @@ fun LabourInputField(
             modifier = Modifier.fillMaxWidth(),
             label = {
                 Text(
-                    text = "$label (Optional)",
+                    text = label,
                     style = MaterialTheme.typography.bodyMedium
                 )
             },

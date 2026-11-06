@@ -7,6 +7,9 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,6 +27,8 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.TableChart
+import androidx.compose.material.icons.filled.ViewAgenda
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -39,15 +44,22 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.labourregister.app.export.CsvExporter
+import com.labourregister.app.ui.components.DeleteConfirmationDialog
 import com.labourregister.app.ui.components.EditCellDialog
+import com.labourregister.app.ui.components.LabourCardList
 import com.labourregister.app.ui.components.LabourTable
 import com.labourregister.app.ui.theme.RegisterBackground
 import com.labourregister.app.ui.theme.RegisterBorder
@@ -69,6 +81,11 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+enum class RegisterViewMode {
+    CARDS,
+    TABLE
+}
+
 @Composable
 fun LabourRegisterScreen(
     viewModel: LabourViewModel,
@@ -77,11 +94,14 @@ fun LabourRegisterScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
+    var viewMode by rememberSaveable { mutableStateOf(RegisterViewMode.CARDS) }
+
     val totalCount by viewModel.totalCount.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val labourers by viewModel.labourers.collectAsState()
     val activeEditCell by viewModel.activeEditCell.collectAsState()
     val editCellError by viewModel.editCellError.collectAsState()
+    val recordToDelete by viewModel.recordToDelete.collectAsState()
     val exportStatus by viewModel.exportStatus.collectAsState()
 
     // SAF Document Creator for CSV Export
@@ -94,7 +114,6 @@ fun LabourRegisterScreen(
         }
         coroutineScope.launch {
             try {
-                // Must export EVERY saved record, not just filtered search results
                 val allLabourers = viewModel.getAllLabourersForExport()
                 withContext(Dispatchers.IO) {
                     context.contentResolver.openOutputStream(uri)?.use { outputStream ->
@@ -126,7 +145,7 @@ fun LabourRegisterScreen(
                 .padding(innerPadding)
                 .padding(horizontal = 10.dp, vertical = 10.dp)
         ) {
-            // Top Section: Total Count Card
+            // Top Section: Total Count Card & View Switcher
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = RegisterSurface),
@@ -137,7 +156,8 @@ fun LabourRegisterScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 14.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
@@ -154,30 +174,81 @@ fun LabourRegisterScreen(
                         )
                     }
 
-                    Box(
+                    // View Mode Switcher: Cards vs Table
+                    Row(
                         modifier = Modifier
                             .background(RegisterSurfaceVariant, RoundedCornerShape(8.dp))
-                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                            .border(0.8.dp, RegisterBorder.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                            .padding(2.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = if (searchQuery.isNotEmpty()) "Showing: ${labourers.size}" else "All Records",
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
-                            color = RegisterNavy
-                        )
+                        // Cards Button (Optimal for visualizing long text without scrolling)
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(if (viewMode == RegisterViewMode.CARDS) RegisterNavy else Color.Transparent)
+                                .clickable { viewMode = RegisterViewMode.CARDS }
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.ViewAgenda,
+                                    contentDescription = "Cards View",
+                                    tint = if (viewMode == RegisterViewMode.CARDS) Color.White else RegisterNavy,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Cards",
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        fontWeight = if (viewMode == RegisterViewMode.CARDS) FontWeight.Bold else FontWeight.Medium,
+                                        fontSize = 12.sp,
+                                        color = if (viewMode == RegisterViewMode.CARDS) Color.White else RegisterNavy
+                                    )
+                                )
+                            }
+                        }
+
+                        // Table Button (Spreadsheet View with expanded wrapping)
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(if (viewMode == RegisterViewMode.TABLE) RegisterNavy else Color.Transparent)
+                                .clickable { viewMode = RegisterViewMode.TABLE }
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.TableChart,
+                                    contentDescription = "Table View",
+                                    tint = if (viewMode == RegisterViewMode.TABLE) Color.White else RegisterNavy,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Table",
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        fontWeight = if (viewMode == RegisterViewMode.TABLE) FontWeight.Bold else FontWeight.Medium,
+                                        fontSize = 12.sp,
+                                        color = if (viewMode == RegisterViewMode.TABLE) Color.White else RegisterNavy
+                                    )
+                                )
+                            }
+                        }
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Search Bar: searches across Name, Village, Mobile number
+            // Search Bar: searches across Name, Skill, Village, Mobile number
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { viewModel.onSearchQueryChange(it) },
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = {
                     Text(
-                        text = "Search by name, village, or mobile...",
+                        text = "Search by name, skill, village, or mobile...",
                         style = MaterialTheme.typography.bodyMedium,
                         color = RegisterTextSecondary.copy(alpha = 0.6f)
                     )
@@ -212,7 +283,7 @@ fun LabourRegisterScreen(
                 )
             )
 
-            // Prominent In-Table Editing Tip Banner
+            // Dynamic Editing Tip Banner
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -234,7 +305,11 @@ fun LabourRegisterScreen(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Double-tap any cell (Name, Village, Charge, Mobile) to edit.",
+                        text = if (viewMode == RegisterViewMode.CARDS) {
+                            "Tip: Double-tap any detail (Name, Skill, Village, Charge, Phone) to edit."
+                        } else {
+                            "Tip: Double-tap any cell to edit. Text wraps to show full contents."
+                        },
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Medium,
                             fontSize = 11.5.sp,
@@ -288,21 +363,43 @@ fun LabourRegisterScreen(
                 }
             }
 
-            // Compact Tabular Register: all 4 columns visible in one glance
-            LabourTable(
-                labourers = labourers,
-                onCellDoubleTap = { labourer, field ->
-                    viewModel.startEditingCell(labourer, field)
-                },
+            // Main Records Section: Cards or Table
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
-                emptyMessage = if (searchQuery.isNotEmpty()) {
+                    .weight(1f)
+            ) {
+                val emptyMessage = if (searchQuery.isNotEmpty()) {
                     "No labourers found matching \"$searchQuery\"."
                 } else {
                     "No labourers registered yet.\nUse 'Add Labour' below to enter records."
                 }
-            )
+
+                if (viewMode == RegisterViewMode.CARDS) {
+                    // Full-width cards: visualises all long text in one go with zero horizontal scroll
+                    LabourCardList(
+                        labourers = labourers,
+                        onCellEdit = { labourer, field ->
+                            viewModel.startEditingCell(labourer, field)
+                        },
+                        onDeleteRequest = { labourer ->
+                            viewModel.requestDelete(labourer)
+                        },
+                        modifier = Modifier.fillMaxSize(),
+                        emptyMessage = emptyMessage
+                    )
+                } else {
+                    // Classic Table: multi-line wrapped cells without any ellipsis truncation
+                    LabourTable(
+                        labourers = labourers,
+                        onCellDoubleTap = { labourer, field ->
+                            viewModel.startEditingCell(labourer, field)
+                        },
+                        modifier = Modifier.fillMaxSize(),
+                        emptyMessage = emptyMessage
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -346,6 +443,15 @@ fun LabourRegisterScreen(
                 onCancel = {
                     viewModel.dismissEditingCell()
                 }
+            )
+        }
+
+        // Delete Confirmation Dialog
+        recordToDelete?.let { labourer ->
+            DeleteConfirmationDialog(
+                labourer = labourer,
+                onConfirm = { viewModel.confirmDelete() },
+                onDismiss = { viewModel.dismissDelete() }
             )
         }
     }

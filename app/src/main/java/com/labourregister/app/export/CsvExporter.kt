@@ -8,7 +8,7 @@ import java.nio.charset.StandardCharsets
 
 object CsvExporter {
 
-    private val CSV_HEADER = "name,village,daily_charge_inr,mobile_number"
+    private val CSV_HEADER = "name,skill,village,daily_charge_inr,mobile_number"
 
     /**
      * Exports a list of LabourerEntity records to the given OutputStream in CSV format.
@@ -25,11 +25,12 @@ object CsvExporter {
 
         for (labourer in labourers) {
             val nameEscaped = escapeField(labourer.name)
+            val skillEscaped = escapeField(labourer.skill)
             val villageEscaped = escapeField(labourer.village)
             val dailyChargeEscaped = escapeField(labourer.dailyChargeRupeesString)
             val mobileEscaped = escapeField(labourer.mobileNumber)
 
-            writer.write("$nameEscaped,$villageEscaped,$dailyChargeEscaped,$mobileEscaped")
+            writer.write("$nameEscaped,$skillEscaped,$villageEscaped,$dailyChargeEscaped,$mobileEscaped")
             writer.write("\r\n")
         }
 

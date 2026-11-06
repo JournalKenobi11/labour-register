@@ -13,6 +13,9 @@ data class LabourerEntity(
     @ColumnInfo(name = "name")
     val name: String? = null,
 
+    @ColumnInfo(name = "skill")
+    val skill: String? = null,
+
     @ColumnInfo(name = "village")
     val village: String? = null,
 

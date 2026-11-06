@@ -18,6 +18,7 @@ import java.math.RoundingMode
 
 enum class LabourerField(val displayName: String) {
     NAME("Labourer Name"),
+    SKILL("Skill"),
     VILLAGE("Village"),
     DAILY_CHARGE("Daily Charge (₹)"),
     MOBILE_NUMBER("Mobile Number")
@@ -37,6 +38,9 @@ class LabourViewModel(
     // --- Add Labour Form State ---
     private val _nameInput = MutableStateFlow("")
     val nameInput: StateFlow<String> = _nameInput.asStateFlow()
+
+    private val _skillInput = MutableStateFlow("")
+    val skillInput: StateFlow<String> = _skillInput.asStateFlow()
 
     private val _villageInput = MutableStateFlow("")
     val villageInput: StateFlow<String> = _villageInput.asStateFlow()
@@ -96,6 +100,11 @@ class LabourViewModel(
         if (_formError.value != null) _formError.value = null
     }
 
+    fun onSkillChange(value: String) {
+        _skillInput.value = value
+        if (_formError.value != null) _formError.value = null
+    }
+
     fun onVillageChange(value: String) {
         _villageInput.value = value
         if (_formError.value != null) _formError.value = null
@@ -132,12 +141,13 @@ class LabourViewModel(
 
     fun saveLabourer() {
         val name = _nameInput.value.trim()
+        val skill = _skillInput.value.trim()
         val village = _villageInput.value.trim()
         val chargeStr = _dailyChargeInput.value.trim()
         val mobile = _mobileNumberInput.value.trim()
 
-        // Validation Rule: Rejected ONLY if all four fields are empty or whitespace
-        if (name.isEmpty() && village.isEmpty() && chargeStr.isEmpty() && mobile.isEmpty()) {
+        // Validation Rule: Rejected ONLY if all fields are empty or whitespace
+        if (name.isEmpty() && skill.isEmpty() && village.isEmpty() && chargeStr.isEmpty() && mobile.isEmpty()) {
             _formError.value = "Cannot save an empty record. Please fill in at least one field."
             return
         }
@@ -162,6 +172,7 @@ class LabourViewModel(
             val now = System.currentTimeMillis()
             val entity = LabourerEntity(
                 name = if (name.isNotEmpty()) name else null,
+                skill = if (skill.isNotEmpty()) skill else null,
                 village = if (village.isNotEmpty()) village else null,
                 dailyChargePaise = paise,
                 mobileNumber = if (mobile.isNotEmpty()) mobile else null,
@@ -170,8 +181,9 @@ class LabourViewModel(
             )
             repository.insertLabourer(entity)
 
-            // Clear all 4 fields
+            // Clear all fields
             _nameInput.value = ""
+            _skillInput.value = ""
             _villageInput.value = ""
             _dailyChargeInput.value = ""
             _mobileNumberInput.value = ""
@@ -196,11 +208,12 @@ class LabourViewModel(
     fun startEditingCell(labourer: LabourerEntity, field: LabourerField) {
         val initialVal = when (field) {
             LabourerField.NAME -> labourer.name ?: ""
+            LabourerField.SKILL -> labourer.skill ?: ""
             LabourerField.VILLAGE -> labourer.village ?: ""
             LabourerField.DAILY_CHARGE -> labourer.dailyChargeRupeesString
             LabourerField.MOBILE_NUMBER -> labourer.mobileNumber ?: ""
         }
-        val summary = labourer.name ?: labourer.village ?: "Record #${labourer.id}"
+        val summary = labourer.name ?: labourer.skill ?: labourer.village ?: "Record #${labourer.id}"
         _editCellError.value = null
         _activeEditCell.value = ActiveEditCell(
             recordId = labourer.id,
@@ -224,6 +237,11 @@ class LabourViewModel(
                 LabourerField.NAME -> {
                     val value = if (trimmed.isEmpty()) null else trimmed
                     repository.updateName(active.recordId, value)
+                    dismissEditingCell()
+                }
+                LabourerField.SKILL -> {
+                    val value = if (trimmed.isEmpty()) null else trimmed
+                    repository.updateSkill(active.recordId, value)
                     dismissEditingCell()
                 }
                 LabourerField.VILLAGE -> {

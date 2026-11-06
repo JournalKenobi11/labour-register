@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.CurrencyRupee
 import androidx.compose.material.icons.outlined.LocationOn
@@ -70,6 +71,7 @@ fun AddLabourScreen(
     modifier: Modifier = Modifier
 ) {
     val name by viewModel.nameInput.collectAsState()
+    val skill by viewModel.skillInput.collectAsState()
     val village by viewModel.villageInput.collectAsState()
     val dailyCharge by viewModel.dailyChargeInput.collectAsState()
     val mobileNumber by viewModel.mobileNumberInput.collectAsState()
@@ -105,7 +107,7 @@ fun AddLabourScreen(
                 color = RegisterNavy
             )
             Text(
-                text = "Fill in the details below. All fields are individually optional.",
+                text = "Fill in the details below.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = RegisterTextSecondary,
                 modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
@@ -244,7 +246,26 @@ fun AddLabourScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Field 2: Village (QWERTY text keyboard, standard spaces allowed)
+                    // Field 2: Skill (QWERTY text keyboard, standard spaces allowed)
+                    LabourInputField(
+                        label = "Skill",
+                        value = skill,
+                        onValueChange = { viewModel.onSkillChange(it) },
+                        placeholder = "e.g., Mason, Carpenter",
+                        leadingIcon = Icons.Outlined.Build,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Text,
+                            capitalization = KeyboardCapitalization.Words,
+                            imeAction = ImeAction.Next
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Field 3: Village (QWERTY text keyboard, standard spaces allowed)
                     LabourInputField(
                         label = "Village",
                         value = village,
@@ -263,7 +284,7 @@ fun AddLabourScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Field 3: Daily Charge (Currency: INR ₹, numeric decimal keyboard)
+                    // Field 4: Daily Charge (Currency: INR ₹, numeric decimal keyboard)
                     LabourInputField(
                         label = "Daily Charge",
                         value = dailyCharge,
@@ -282,7 +303,7 @@ fun AddLabourScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Field 4: Mobile Number (Phone keypad, preserves leading zeroes & allows +91)
+                    // Field 5: Mobile Number (Phone keypad, preserves leading zeroes & allows +91)
                     LabourInputField(
                         label = "Mobile Number",
                         value = mobileNumber,

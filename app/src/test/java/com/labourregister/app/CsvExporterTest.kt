@@ -46,6 +46,7 @@ class CsvExporterTest {
             LabourerEntity(
                 id = 1,
                 name = "Ramesh Kumar",
+                skill = "Mason",
                 village = "Rampur, Sector 4",
                 dailyChargePaise = 50000, // ₹500
                 mobileNumber = "+919876543210"
@@ -53,6 +54,7 @@ class CsvExporterTest {
             LabourerEntity(
                 id = 2,
                 name = "Suresh \"The Mason\"",
+                skill = "Carpenter",
                 village = null,
                 dailyChargePaise = 45050, // ₹450.50
                 mobileNumber = "09876543210"
@@ -60,6 +62,7 @@ class CsvExporterTest {
             LabourerEntity(
                 id = 3,
                 name = null,
+                skill = null,
                 village = "Sitapur",
                 dailyChargePaise = null,
                 mobileNumber = null
@@ -79,15 +82,15 @@ class CsvExporterTest {
 
         assertEquals(4, lines.size)
         // Header
-        assertEquals("name,village,daily_charge_inr,mobile_number", lines[0])
+        assertEquals("name,skill,village,daily_charge_inr,mobile_number", lines[0])
 
         // Row 1
-        assertEquals("Ramesh Kumar,\"Rampur, Sector 4\",500,+919876543210", lines[1])
+        assertEquals("Ramesh Kumar,Mason,\"Rampur, Sector 4\",500,+919876543210", lines[1])
 
         // Row 2 (with quotes escaping and preserved leading zero)
-        assertEquals("\"Suresh \"\"The Mason\"\"\",,450.50,09876543210", lines[2])
+        assertEquals("\"Suresh \"\"The Mason\"\"\",Carpenter,,450.50,09876543210", lines[2])
 
         // Row 3 (with empty/null fields preserved as empty strings)
-        assertEquals(",Sitapur,,", lines[3])
+        assertEquals(",,Sitapur,,", lines[3])
     }
 }

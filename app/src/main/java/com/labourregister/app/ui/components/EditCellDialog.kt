@@ -60,8 +60,15 @@ fun EditCellDialog(
 
     val focusRequester = remember { FocusRequester() }
 
+    val isMultiline = activeEditCell.field in listOf(
+        LabourerField.NAME,
+        LabourerField.SKILL,
+        LabourerField.VILLAGE
+    )
+
     val (keyboardType, capitalization, prefixText) = when (activeEditCell.field) {
         LabourerField.NAME -> Triple(KeyboardType.Text, KeyboardCapitalization.Words, null)
+        LabourerField.SKILL -> Triple(KeyboardType.Text, KeyboardCapitalization.Words, null)
         LabourerField.VILLAGE -> Triple(KeyboardType.Text, KeyboardCapitalization.Words, null)
         LabourerField.DAILY_CHARGE -> Triple(KeyboardType.Decimal, KeyboardCapitalization.None, "₹ ")
         LabourerField.MOBILE_NUMBER -> Triple(KeyboardType.Phone, KeyboardCapitalization.None, null)
@@ -131,12 +138,14 @@ fun EditCellDialog(
                             )
                         }
                     },
-                    singleLine = true,
+                    singleLine = !isMultiline,
+                    minLines = if (isMultiline) 2 else 1,
+                    maxLines = if (isMultiline) 4 else 1,
                     isError = errorMessage != null,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = keyboardType,
                         capitalization = capitalization,
-                        imeAction = ImeAction.Done
+                        imeAction = if (isMultiline) ImeAction.Default else ImeAction.Done
                     ),
                     keyboardActions = KeyboardActions(
                         onDone = { onSave(textFieldValue.text) }

@@ -51,6 +51,11 @@ class LabourRepository(
             labourerDao.updateName(id, name)
         }
 
+    suspend fun updateSkill(id: Long, skill: String?) =
+        withContext(ioDispatcher) {
+            labourerDao.updateSkill(id, skill)
+        }
+
     suspend fun updateVillage(id: Long, village: String?) =
         withContext(ioDispatcher) {
             labourerDao.updateVillage(id, village)

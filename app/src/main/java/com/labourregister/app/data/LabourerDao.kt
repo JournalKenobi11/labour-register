@@ -29,6 +29,7 @@ interface LabourerDao {
     @Query("""
         SELECT * FROM labourers 
         WHERE (name LIKE '%' || :query || '%' 
+           OR skill LIKE '%' || :query || '%' 
            OR village LIKE '%' || :query || '%' 
            OR mobile_number LIKE '%' || :query || '%')
         ORDER BY id DESC
@@ -49,6 +50,9 @@ interface LabourerDao {
 
     @Query("UPDATE labourers SET name = :name, updated_at = :updatedAt WHERE id = :id")
     suspend fun updateName(id: Long, name: String?, updatedAt: Long = System.currentTimeMillis())
+
+    @Query("UPDATE labourers SET skill = :skill, updated_at = :updatedAt WHERE id = :id")
+    suspend fun updateSkill(id: Long, skill: String?, updatedAt: Long = System.currentTimeMillis())
 
     @Query("UPDATE labourers SET village = :village, updated_at = :updatedAt WHERE id = :id")
     suspend fun updateVillage(id: Long, village: String?, updatedAt: Long = System.currentTimeMillis())
