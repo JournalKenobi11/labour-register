@@ -132,6 +132,9 @@ data class ProductQuoteEntity(
     val gstBadgeText: String
         get() = if (gstIncluded) "Incl. 18% GST" else "+18% GST"
 
+    val gstExportStatus: String
+        get() = if (gstIncluded) "Incl. 18% GST" else "Excl. 18% GST"
+
     val isValid: Boolean
         get() = productName.isNotBlank() || pricePaise != null
 

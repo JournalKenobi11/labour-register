@@ -25,11 +25,17 @@ data class ShopWithQuotes(
     val formattedTotalQuotation: String
         get() = ProductQuoteEntity.formatPaise(totalQuotationPaise)
 
+    val totalQuotationRupeesString: String
+        get() = ProductQuoteEntity.paiseToPlainRupees(totalQuotationPaise)
+
     val totalGstPaise: Long
         get() = quotes.mapNotNull { it.lineGstPaise }.sum()
 
     val formattedTotalGst: String
         get() = ProductQuoteEntity.formatPaise(totalGstPaise)
+
+    val totalGstRupeesString: String
+        get() = ProductQuoteEntity.paiseToPlainRupees(totalGstPaise)
 
     val totalBasePaise: Long
         get() = quotes.mapNotNull { it.lineBasePaise }.sum()

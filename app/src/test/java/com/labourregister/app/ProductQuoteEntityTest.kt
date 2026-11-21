@@ -45,6 +45,7 @@ class ProductQuoteEntityTest {
             gstIncluded = false
         )
         assertEquals("+18% GST", fourCameras.gstBadgeText)
+        assertEquals("Excl. 18% GST", fourCameras.gstExportStatus)
         assertEquals(4, fourCameras.quantity)
         assertEquals(18000L, fourCameras.unitGstPaise) // ₹180 per unit
         assertEquals(118000L, fourCameras.unitFinalPricePaise) // ₹1180 per unit
@@ -61,6 +62,7 @@ class ProductQuoteEntityTest {
             gstIncluded = true
         )
         assertEquals("Incl. 18% GST", twoDvrs.gstBadgeText)
+        assertEquals("Incl. 18% GST", twoDvrs.gstExportStatus)
         assertEquals(2, twoDvrs.quantity)
         assertEquals(90000L, twoDvrs.unitGstPaise) // ₹900 per unit
         assertEquals(590000L, twoDvrs.unitFinalPricePaise) // ₹5900 per unit
@@ -80,6 +82,8 @@ class ProductQuoteEntityTest {
         assertEquals(6, shopWithQuotes.totalUnitsCount) // 4 cameras + 2 DVRs = 6 units
         assertEquals(1652000L, shopWithQuotes.totalQuotationPaise) // 4720 + 11800 = 16520
         assertEquals("₹16520", shopWithQuotes.formattedTotalQuotation)
+        assertEquals("16520", shopWithQuotes.totalQuotationRupeesString)
+        assertEquals("2520", shopWithQuotes.totalGstRupeesString)
     }
 
     @Test

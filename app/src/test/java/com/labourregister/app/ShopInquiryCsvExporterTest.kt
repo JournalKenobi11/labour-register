@@ -68,20 +68,27 @@ class ShopInquiryCsvExporterTest {
         // Decode text
         val text = String(bytes, 3, bytes.size - 3, StandardCharsets.UTF_8)
 
-        // Verify Shop 1 banner
-        assertTrue(text.contains("SHOP: Royal Hardware | Contact: Sunil Bhai | Mobile: +919825012345"))
-        // Verify product columns including Quantity and Line Total
-        assertTrue(text.contains("Product Name,Brand / Model,Quantity,Unit Price (INR),GST Status,18% GST (INR),Line Total (INR),Notes"))
-        // Verify Cat6 line with 2 units (2 x 5000 unit -> 1800 line GST -> 11800 line final)
-        assertTrue(text.contains("Cat6 Cable 305m,D-Link,2,5000,+18% GST,1800,11800,Min 2 boxes"))
-        // Verify Dome Camera line with 4 units (4 x 1180 unit -> 720 line GST -> 4720 line final)
-        assertTrue(text.contains("2MP Dome Camera,Hikvision,4,1180,Incl. 18% GST,720,4720,Night color"))
-        // Verify Shop 1 subtotal with SKUs, units count, line total GST and shop quotation
-        assertTrue(text.contains("--- TOTAL: Royal Hardware,,2 SKUs (6 Units),,,Total GST: ₹2520,Shop Quotation: ₹16520,"))
+        // Verify standard 11-column header
+        assertTrue(text.contains("Shop Name,Contact Person,Mobile Number,Product Name,Brand / Model,Quantity,Unit Price (INR),GST Status,18% GST (INR),Line Total (INR),Notes"))
 
-        // Verify Shop 2 banner and empty quote message
-        assertTrue(text.contains("SHOP: Shree Ram Sanitary | Contact: Ramesh | Mobile: 09876543210"))
-        assertTrue(text.contains("(No product quotes logged for this shop)"))
+        // Verify Cat6 line with 2 units (Excl. 18% GST, pure numeric amounts)
+        assertTrue(text.contains("Royal Hardware,Sunil Bhai,+919825012345,Cat6 Cable 305m,D-Link,2,5000,Excl. 18% GST,1800,11800,Min 2 boxes"))
+
+        // Verify Dome Camera line with 4 units (Incl. 18% GST, pure numeric amounts)
+        assertTrue(text.contains("Royal Hardware,Sunil Bhai,+919825012345,2MP Dome Camera,Hikvision,4,1180,Incl. 18% GST,720,4720,Night color"))
+
+        // Verify Shop 1 subtotal with clean 11-columns, pure numbers, no leading '-' or '=' formula triggers, and no rupee symbols
+        assertTrue(text.contains("TOTAL: Royal Hardware,Sunil Bhai,+919825012345,2 SKUs (6 Units),,6,,Total GST,2520,16520,"))
+
+        // Verify Shop 2 row for empty quote
+        assertTrue(text.contains("Shree Ram Sanitary,Ramesh,09876543210,(No product quotes logged),,,,,,,"))
+
+        // Verify no formula injection trigger characters like ================= or ---
+        assertFalse(text.contains("================="))
+        assertFalse(text.contains("--- TOTAL:"))
+
+        // Verify no raw rupee symbols in CSV numbers causing mojibake
+        assertFalse(text.contains("₹"))
 
         // User explicitly specified: NO allshop summary at the bottom
         assertFalse(text.contains("ALL SHOPS GRAND SUMMARY"))
