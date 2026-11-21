@@ -155,6 +155,7 @@ class ShopInquiryViewModel(
         contactName: String,
         productName: String,
         brandOrModel: String,
+        quantity: Int = 1,
         priceStr: String,
         gstIncluded: Boolean,
         notes: String
@@ -166,6 +167,7 @@ class ShopInquiryViewModel(
         val trimmedBrand = brandOrModel.trim()
         val trimmedPriceStr = priceStr.trim()
         val trimmedNotes = notes.trim()
+        val sanitizedQty = quantity.coerceAtLeast(1)
 
         var paise: Long? = null
         if (trimmedPriceStr.isNotEmpty()) {
@@ -219,6 +221,7 @@ class ShopInquiryViewModel(
                 shopId = shopId,
                 productName = trimmedProduct,
                 brandOrModel = trimmedBrand,
+                quantity = sanitizedQty,
                 pricePaise = paise,
                 gstIncluded = gstIncluded,
                 notes = trimmedNotes,
@@ -226,7 +229,7 @@ class ShopInquiryViewModel(
                 updatedAt = now
             )
             repository.insertQuote(quoteEntity)
-            _statusMessage.value = "Saved: ${quoteEntity.productName.ifEmpty { "Item" }} (${quoteEntity.formattedFinalPrice})"
+            _statusMessage.value = "Saved: ${quoteEntity.productName.ifEmpty { "Item" }} (${sanitizedQty}x @ ${quoteEntity.formattedUnitFinalPrice} = ${quoteEntity.formattedLineFinalPrice})"
         }
         return true
     }
@@ -300,6 +303,7 @@ class ShopInquiryViewModel(
         quoteId: Long,
         productName: String,
         brandOrModel: String,
+        quantity: Int = 1,
         priceStr: String,
         gstIncluded: Boolean,
         notes: String
@@ -308,6 +312,7 @@ class ShopInquiryViewModel(
         val trimmedBrand = brandOrModel.trim()
         val trimmedPrice = priceStr.trim()
         val trimmedNotes = notes.trim()
+        val sanitizedQty = quantity.coerceAtLeast(1)
 
         var paise: Long? = null
         if (trimmedPrice.isNotEmpty()) {
@@ -323,10 +328,7 @@ class ShopInquiryViewModel(
         if (trimmedProduct.isEmpty() && paise == null) return false
 
         viewModelScope.launch {
-            repository.updateQuoteProductName(quoteId, trimmedProduct)
-            repository.updateQuoteBrand(quoteId, trimmedBrand)
-            repository.updateQuotePriceAndGst(quoteId, paise, gstIncluded)
-            repository.updateQuoteNotes(quoteId, trimmedNotes)
+            repository.updateQuoteFull(quoteId, trimmedProduct, trimmedBrand, sanitizedQty, paise, gstIncluded, trimmedNotes)
             _statusMessage.value = "Updated $trimmedProduct."
             dismissEditQuote()
         }

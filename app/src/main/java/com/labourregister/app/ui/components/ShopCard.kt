@@ -68,7 +68,6 @@ import com.labourregister.app.ui.theme.RegisterTeal
 import com.labourregister.app.ui.theme.RegisterTealLight
 import com.labourregister.app.ui.theme.RegisterTextPrimary
 import com.labourregister.app.ui.theme.RegisterTextSecondary
-import com.labourregister.app.viewmodel.QuoteField
 
 @Composable
 fun ShopCard(
@@ -188,8 +187,13 @@ fun ShopCard(
                             color = RegisterBackground,
                             border = androidx.compose.foundation.BorderStroke(1.dp, RegisterBorder)
                         ) {
+                            val unitsLabel = if (shopWithQuotes.totalUnitsCount > shopWithQuotes.skuCount) {
+                                "${shopWithQuotes.skuCount} SKUs • ${shopWithQuotes.totalUnitsCount} Units"
+                            } else {
+                                "${shopWithQuotes.skuCount} SKUs"
+                            }
                             Text(
-                                text = "${shopWithQuotes.skuCount} SKUs",
+                                text = unitsLabel,
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.SemiBold,
                                 color = RegisterNavy,
@@ -342,7 +346,7 @@ fun ShopCard(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .background(RegisterHeaderBg)
-                                .padding(horizontal = 12.dp, vertical = 7.dp),
+                                .padding(horizontal = 10.dp, vertical = 7.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
@@ -350,28 +354,35 @@ fun ShopCard(
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = RegisterNavy,
-                                modifier = Modifier.weight(1.3f)
+                                modifier = Modifier.weight(1.2f)
                             )
                             Text(
-                                text = "Quoted",
+                                text = "Qty",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = RegisterNavy,
-                                modifier = Modifier.weight(0.9f)
+                                modifier = Modifier.width(36.dp)
                             )
                             Text(
-                                text = "Final (18% GST)",
+                                text = "Unit Rate",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = RegisterNavy,
-                                modifier = Modifier.weight(1.0f)
+                                modifier = Modifier.weight(0.85f)
+                            )
+                            Text(
+                                text = "Total (18%)",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = RegisterNavy,
+                                modifier = Modifier.weight(1.05f)
                             )
                             Text(
                                 text = "Actions",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = RegisterNavy,
-                                modifier = Modifier.width(60.dp)
+                                modifier = Modifier.width(56.dp)
                             )
                         }
 
@@ -386,11 +397,11 @@ fun ShopCard(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .background(rowBg)
-                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                    .padding(horizontal = 10.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 // Product & Brand Column
-                                Column(modifier = Modifier.weight(1.3f)) {
+                                Column(modifier = Modifier.weight(1.2f)) {
                                     Text(
                                         text = quote.productName.ifBlank { "-" },
                                         style = MaterialTheme.typography.bodyMedium,
@@ -417,11 +428,20 @@ fun ShopCard(
                                     }
                                 }
 
-                                // Quoted Price Column
-                                Column(modifier = Modifier.weight(0.9f)) {
+                                // Qty Column
+                                Text(
+                                    text = "${quote.quantity}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = RegisterNavy,
+                                    modifier = Modifier.width(36.dp)
+                                )
+
+                                // Unit Quoted Price Column
+                                Column(modifier = Modifier.weight(0.85f)) {
                                     Text(
                                         text = quote.formattedPrice,
-                                        style = MaterialTheme.typography.bodyMedium,
+                                        style = MaterialTheme.typography.bodySmall,
                                         fontWeight = FontWeight.SemiBold,
                                         color = RegisterNavy
                                     )
@@ -441,20 +461,23 @@ fun ShopCard(
                                     }
                                 }
 
-                                // Final Landed Price (with 18% GST breakdown)
-                                Column(modifier = Modifier.weight(1.0f)) {
+                                // Final Line Total Column (Multiplied by Quantity with 18% GST)
+                                Column(modifier = Modifier.weight(1.05f)) {
                                     Text(
-                                        text = quote.formattedFinalPrice,
+                                        text = quote.formattedLineFinalPrice,
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = RegisterTeal
                                     )
+                                    val subText = if (quote.quantity > 1) {
+                                        "${quote.quantity} × ${quote.formattedUnitFinalPrice}"
+                                    } else if (quote.gstIncluded) {
+                                        "(${quote.formattedUnitGst} GST inc)"
+                                    } else {
+                                        "(+${quote.formattedUnitGst} GST)"
+                                    }
                                     Text(
-                                        text = if (quote.gstIncluded) {
-                                            "(${quote.formattedGstAmount} GST inc)"
-                                        } else {
-                                            "(+${quote.formattedGstAmount} GST)"
-                                        },
+                                        text = subText,
                                         style = MaterialTheme.typography.bodySmall,
                                         fontSize = 10.sp,
                                         color = RegisterTextSecondary
@@ -463,31 +486,31 @@ fun ShopCard(
 
                                 // Action Buttons: Direct Edit ✏️ and Delete 🗑️
                                 Row(
-                                    modifier = Modifier.width(60.dp),
+                                    modifier = Modifier.width(56.dp),
                                     horizontalArrangement = Arrangement.spacedBy(2.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     IconButton(
                                         onClick = { onEditQuote(quote, summary) },
-                                        modifier = Modifier.size(28.dp)
+                                        modifier = Modifier.size(26.dp)
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.Edit,
                                             contentDescription = "Edit Quote",
                                             tint = RegisterNavy,
-                                            modifier = Modifier.size(16.dp)
+                                            modifier = Modifier.size(15.dp)
                                         )
                                     }
 
                                     IconButton(
                                         onClick = { onDeleteQuote(quote) },
-                                        modifier = Modifier.size(28.dp)
+                                        modifier = Modifier.size(26.dp)
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.DeleteOutline,
                                             contentDescription = "Delete Quote",
                                             tint = RegisterError.copy(alpha = 0.7f),
-                                            modifier = Modifier.size(16.dp)
+                                            modifier = Modifier.size(15.dp)
                                         )
                                     }
                                 }

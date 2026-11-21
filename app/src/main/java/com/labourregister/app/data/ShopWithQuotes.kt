@@ -16,20 +16,23 @@ data class ShopWithQuotes(
     val skuCount: Int
         get() = quotes.size
 
+    val totalUnitsCount: Int
+        get() = quotes.sumOf { it.quantity.coerceAtLeast(1) }
+
     val totalQuotationPaise: Long
-        get() = quotes.mapNotNull { it.finalPricePaise }.sum()
+        get() = quotes.mapNotNull { it.lineFinalPricePaise }.sum()
 
     val formattedTotalQuotation: String
         get() = ProductQuoteEntity.formatPaise(totalQuotationPaise)
 
     val totalGstPaise: Long
-        get() = quotes.mapNotNull { it.gstAmountPaise }.sum()
+        get() = quotes.mapNotNull { it.lineGstPaise }.sum()
 
     val formattedTotalGst: String
         get() = ProductQuoteEntity.formatPaise(totalGstPaise)
 
     val totalBasePaise: Long
-        get() = quotes.mapNotNull { it.basePricePaise }.sum()
+        get() = quotes.mapNotNull { it.lineBasePaise }.sum()
 
     val formattedTotalBase: String
         get() = ProductQuoteEntity.formatPaise(totalBasePaise)

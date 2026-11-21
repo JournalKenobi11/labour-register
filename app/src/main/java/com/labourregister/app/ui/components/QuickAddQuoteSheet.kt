@@ -83,7 +83,7 @@ fun QuickAddQuoteSheet(
     shopNameSuggestions: List<String>,
     productNameSuggestions: List<String>,
     onFindShop: suspend (String) -> ShopEntity?,
-    onSaveInquiry: (shopName: String, mobile: String, contact: String, product: String, brand: String, price: String, gst: Boolean, notes: String) -> Boolean,
+    onSaveInquiry: (shopName: String, mobile: String, contact: String, product: String, brand: String, quantity: Int, price: String, gst: Boolean, notes: String) -> Boolean,
     onDismiss: () -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -95,6 +95,7 @@ fun QuickAddQuoteSheet(
 
     var productName by remember { mutableStateOf("") }
     var brandOrModel by remember { mutableStateOf("") }
+    var quantityStr by remember { mutableStateOf("1") }
     var priceStr by remember { mutableStateOf("") }
     var gstIncluded by remember { mutableStateOf(false) }
     var notes by remember { mutableStateOf("") }
@@ -416,29 +417,52 @@ fun QuickAddQuoteSheet(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Price (₹)
-            OutlinedTextField(
-                value = priceStr,
-                onValueChange = { value ->
-                    val sanitized = value.filter { it.isDigit() || it == '.' }
-                    if (sanitized.count { it == '.' } <= 1) {
-                        priceStr = sanitized
-                    }
-                    if (errorMessage != null) errorMessage = null
-                },
-                label = { Text("Price (₹) *") },
-                prefix = { Text("₹ ") },
-                leadingIcon = {
-                    Icon(Icons.Outlined.CurrencyRupee, contentDescription = null, tint = RegisterNavy)
-                },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+            // Quantity and Unit Price Row
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = RegisterNavy,
-                    unfocusedBorderColor = RegisterBorder
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Quantity (default 1)
+                OutlinedTextField(
+                    value = quantityStr,
+                    onValueChange = { value ->
+                        quantityStr = value.filter { it.isDigit() }
+                    },
+                    label = { Text("Qty") },
+                    placeholder = { Text("1") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
+                    modifier = Modifier.width(85.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = RegisterNavy,
+                        unfocusedBorderColor = RegisterBorder
+                    )
                 )
-            )
+
+                // Unit Price (₹)
+                OutlinedTextField(
+                    value = priceStr,
+                    onValueChange = { value ->
+                        val sanitized = value.filter { it.isDigit() || it == '.' }
+                        if (sanitized.count { it == '.' } <= 1) {
+                            priceStr = sanitized
+                        }
+                        if (errorMessage != null) errorMessage = null
+                    },
+                    label = { Text("Unit Rate (₹) *") },
+                    prefix = { Text("₹ ") },
+                    leadingIcon = {
+                        Icon(Icons.Outlined.CurrencyRupee, contentDescription = null, tint = RegisterNavy)
+                    },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+                    modifier = Modifier.weight(1f),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = RegisterNavy,
+                        unfocusedBorderColor = RegisterBorder
+                    )
+                )
+            }
 
             Spacer(modifier = Modifier.height(10.dp))
 
@@ -509,21 +533,24 @@ fun QuickAddQuoteSheet(
             // Primary Button: SAVE & ADD ANOTHER
             Button(
                 onClick = {
+                    val qty = quantityStr.toIntOrNull()?.coerceAtLeast(1) ?: 1
                     val success = onSaveInquiry(
                         shopName,
                         mobileNumber,
                         contactName,
                         productName,
                         brandOrModel,
+                        qty,
                         priceStr,
                         gstIncluded,
                         notes
                     )
                     if (success) {
-                        successFlash = "Saved $productName (₹$priceStr)! Ready for next item."
+                        successFlash = "Saved $qty x $productName (₹$priceStr)! Ready for next item."
                         // Clear product fields only, keep shop details intact!
                         productName = ""
                         brandOrModel = ""
+                        quantityStr = "1"
                         priceStr = ""
                         notes = ""
                         productFocusRequester.requestFocus()
@@ -549,12 +576,14 @@ fun QuickAddQuoteSheet(
             ) {
                 Button(
                     onClick = {
+                        val qty = quantityStr.toIntOrNull()?.coerceAtLeast(1) ?: 1
                         val success = onSaveInquiry(
                             shopName,
                             mobileNumber,
                             contactName,
                             productName,
                             brandOrModel,
+                            qty,
                             priceStr,
                             gstIncluded,
                             notes

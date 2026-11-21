@@ -75,6 +75,18 @@ class ShopInquiryRepository(
             shopInquiryDao.deleteQuoteById(id)
         }
 
+    suspend fun updateQuoteFull(
+        id: Long,
+        name: String,
+        brand: String,
+        quantity: Int,
+        paise: Long?,
+        gst: Boolean,
+        notes: String
+    ) = withContext(ioDispatcher) {
+        shopInquiryDao.updateQuoteFull(id, name, brand, quantity, paise, gst, notes)
+    }
+
     suspend fun updateQuoteProductName(id: Long, name: String) =
         withContext(ioDispatcher) {
             shopInquiryDao.updateQuoteProductName(id, name)

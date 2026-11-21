@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -54,12 +55,13 @@ import com.labourregister.app.ui.theme.RegisterTextSecondary
 fun EditQuoteDialog(
     quote: ProductQuoteEntity,
     summary: String,
-    onSave: (quoteId: Long, productName: String, brand: String, priceStr: String, gstIncluded: Boolean, notes: String) -> Boolean,
+    onSave: (quoteId: Long, productName: String, brand: String, quantity: Int, priceStr: String, gstIncluded: Boolean, notes: String) -> Boolean,
     onDismiss: () -> Unit
 ) {
     // Keyed on quote.id to ensure fresh state every time dialog opens
     var productName by remember(quote.id) { mutableStateOf(quote.productName) }
     var brandOrModel by remember(quote.id) { mutableStateOf(quote.brandOrModel) }
+    var quantityStr by remember(quote.id) { mutableStateOf(quote.quantity.toString()) }
     var priceStr by remember(quote.id) { mutableStateOf(quote.priceRupeesString) }
     var gstIncluded by remember(quote.id) { mutableStateOf(quote.gstIncluded) }
     var notes by remember(quote.id) { mutableStateOf(quote.notes) }
@@ -145,29 +147,50 @@ fun EditQuoteDialog(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // Price (₹)
-                OutlinedTextField(
-                    value = priceStr,
-                    onValueChange = { value ->
-                        val sanitized = value.filter { it.isDigit() || it == '.' }
-                        if (sanitized.count { it == '.' } <= 1) {
-                            priceStr = sanitized
-                        }
-                        if (errorText != null) errorText = null
-                    },
-                    label = { Text("Price (₹)") },
-                    prefix = { Text("₹ ") },
-                    leadingIcon = {
-                        Icon(Icons.Outlined.CurrencyRupee, contentDescription = null, tint = RegisterNavy)
-                    },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+                // Quantity and Unit Price Row
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = RegisterNavy,
-                        unfocusedBorderColor = RegisterBorder
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedTextField(
+                        value = quantityStr,
+                        onValueChange = { value ->
+                            quantityStr = value.filter { it.isDigit() }
+                        },
+                        label = { Text("Qty") },
+                        placeholder = { Text("1") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
+                        modifier = Modifier.width(85.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = RegisterNavy,
+                            unfocusedBorderColor = RegisterBorder
+                        )
                     )
-                )
+
+                    OutlinedTextField(
+                        value = priceStr,
+                        onValueChange = { value ->
+                            val sanitized = value.filter { it.isDigit() || it == '.' }
+                            if (sanitized.count { it == '.' } <= 1) {
+                                priceStr = sanitized
+                            }
+                            if (errorText != null) errorText = null
+                        },
+                        label = { Text("Unit Rate (₹)") },
+                        prefix = { Text("₹ ") },
+                        leadingIcon = {
+                            Icon(Icons.Outlined.CurrencyRupee, contentDescription = null, tint = RegisterNavy)
+                        },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+                        modifier = Modifier.weight(1f),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = RegisterNavy,
+                            unfocusedBorderColor = RegisterBorder
+                        )
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -236,7 +259,8 @@ fun EditQuoteDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    val success = onSave(quote.id, productName, brandOrModel, priceStr, gstIncluded, notes)
+                    val qty = quantityStr.toIntOrNull()?.coerceAtLeast(1) ?: 1
+                    val success = onSave(quote.id, productName, brandOrModel, qty, priceStr, gstIncluded, notes)
                     if (!success) {
                         errorText = "Please enter product name or price."
                     }

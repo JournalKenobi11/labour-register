@@ -35,6 +35,9 @@ data class ProductQuoteEntity(
     @ColumnInfo(name = "brandOrModel")
     val brandOrModel: String = "",
 
+    @ColumnInfo(name = "quantity", defaultValue = "1")
+    val quantity: Int = 1,
+
     @ColumnInfo(name = "pricePaise")
     val pricePaise: Long? = null,
 
@@ -51,7 +54,7 @@ data class ProductQuoteEntity(
     val updatedAt: Long = System.currentTimeMillis()
 ) {
     /**
-     * Raw quoted price formatted, e.g. "₹5000" or "₹5000.50", or "-" if null.
+     * Raw unit price formatted, e.g. "₹1150" or "₹1150.50", or "-" if null.
      */
     val formattedPrice: String
         get() = formatPaise(pricePaise)
@@ -60,15 +63,11 @@ data class ProductQuoteEntity(
         get() = paiseToPlainRupees(pricePaise)
 
     /**
-     * Standard Electronics GST (18%) Calculations:
-     * - If gstIncluded == false (+18% GST):
-     *     GST amount = 18% of pricePaise
-     *     Final landed price = pricePaise + GST amount
-     * - If gstIncluded == true (Incl. 18% GST):
-     *     Final landed price = pricePaise
-     *     GST amount = pricePaise * 18 / 118
+     * Unit 18% GST Amount in paise:
+     * - If gstIncluded == false (+18% GST): 18% of pricePaise
+     * - If gstIncluded == true (Incl. 18% GST): pricePaise * 18 / 118
      */
-    val gstAmountPaise: Long?
+    val unitGstPaise: Long?
         get() = when (pricePaise) {
             null -> null
             else -> if (gstIncluded) {
@@ -78,37 +77,57 @@ data class ProductQuoteEntity(
             }
         }
 
-    val finalPricePaise: Long?
+    /**
+     * Unit Final Landed Price (with 18% GST included):
+     */
+    val unitFinalPricePaise: Long?
         get() = when (pricePaise) {
             null -> null
             else -> if (gstIncluded) {
                 pricePaise
             } else {
-                pricePaise + (gstAmountPaise ?: 0L)
+                pricePaise + (unitGstPaise ?: 0L)
             }
         }
 
-    val basePricePaise: Long?
+    val unitBasePricePaise: Long?
         get() = when (pricePaise) {
             null -> null
             else -> if (gstIncluded) {
-                pricePaise - (gstAmountPaise ?: 0L)
+                pricePaise - (unitGstPaise ?: 0L)
             } else {
                 pricePaise
             }
         }
 
-    val formattedGstAmount: String
-        get() = formatPaise(gstAmountPaise)
+    // --- Line Totals multiplied by Quantity ---
+    val lineFinalPricePaise: Long?
+        get() = unitFinalPricePaise?.let { it * quantity.coerceAtLeast(1) }
 
-    val formattedFinalPrice: String
-        get() = formatPaise(finalPricePaise)
+    val lineGstPaise: Long?
+        get() = unitGstPaise?.let { it * quantity.coerceAtLeast(1) }
 
-    val finalPriceRupeesString: String
-        get() = paiseToPlainRupees(finalPricePaise)
+    val lineBasePaise: Long?
+        get() = unitBasePricePaise?.let { it * quantity.coerceAtLeast(1) }
 
-    val gstAmountRupeesString: String
-        get() = paiseToPlainRupees(gstAmountPaise)
+    // --- Formatted Strings ---
+    val formattedUnitFinalPrice: String
+        get() = formatPaise(unitFinalPricePaise)
+
+    val formattedUnitGst: String
+        get() = formatPaise(unitGstPaise)
+
+    val formattedLineFinalPrice: String
+        get() = formatPaise(lineFinalPricePaise)
+
+    val formattedLineGst: String
+        get() = formatPaise(lineGstPaise)
+
+    val lineFinalPriceRupeesString: String
+        get() = paiseToPlainRupees(lineFinalPricePaise)
+
+    val lineGstRupeesString: String
+        get() = paiseToPlainRupees(lineGstPaise)
 
     val gstBadgeText: String
         get() = if (gstIncluded) "Incl. 18% GST" else "+18% GST"

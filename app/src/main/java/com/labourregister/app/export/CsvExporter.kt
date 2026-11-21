@@ -53,7 +53,7 @@ object CsvExporter {
 
         val writer = BufferedWriter(OutputStreamWriter(outputStream, StandardCharsets.UTF_8))
 
-        val productHeader = "Product Name,Brand / Model,Quoted Price (INR),GST Status,18% GST (INR),Final Landed Price (INR),Notes"
+        val productHeader = "Product Name,Brand / Model,Quantity,Unit Price (INR),GST Status,18% GST (INR),Line Total (INR),Notes"
 
         for ((index, shopWithQuotes) in shopsWithQuotes.withIndex()) {
             val shop = shopWithQuotes.shop
@@ -83,23 +83,24 @@ object CsvExporter {
                 for (quote in quotes) {
                     val prodEsc = escapeField(quote.productName)
                     val brandEsc = escapeField(quote.brandOrModel)
+                    val qtyEsc = quote.quantity.toString()
                     val quotedPriceEsc = escapeField(quote.priceRupeesString)
                     val gstStatusEsc = escapeField(quote.gstBadgeText)
-                    val gstAmountEsc = escapeField(quote.gstAmountRupeesString)
-                    val finalPriceEsc = escapeField(quote.finalPriceRupeesString)
+                    val lineGstEsc = escapeField(quote.lineGstRupeesString)
+                    val lineFinalPriceEsc = escapeField(quote.lineFinalPriceRupeesString)
                     val notesEsc = escapeField(quote.notes)
 
-                    writer.write("$prodEsc,$brandEsc,$quotedPriceEsc,$gstStatusEsc,$gstAmountEsc,$finalPriceEsc,$notesEsc")
+                    writer.write("$prodEsc,$brandEsc,$qtyEsc,$quotedPriceEsc,$gstStatusEsc,$lineGstEsc,$lineFinalPriceEsc,$notesEsc")
                     writer.write("\r\n")
                 }
 
                 // Shop Subtotal Line
                 val shopTitleEsc = escapeField("--- TOTAL: ${shop.displayTitle}")
-                val skuText = "${shopWithQuotes.skuCount} SKUs"
+                val skuText = "${shopWithQuotes.skuCount} SKUs (${shopWithQuotes.totalUnitsCount} Units)"
                 val totalGstText = "Total GST: ${shopWithQuotes.formattedTotalGst}"
                 val totalQuotationText = "Shop Quotation: ${shopWithQuotes.formattedTotalQuotation}"
 
-                writer.write("$shopTitleEsc,,$skuText,,$totalGstText,$totalQuotationText,")
+                writer.write("$shopTitleEsc,,$skuText,,,$totalGstText,$totalQuotationText,")
                 writer.write("\r\n")
             }
 

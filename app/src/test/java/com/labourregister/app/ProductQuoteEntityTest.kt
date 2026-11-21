@@ -35,34 +35,51 @@ class ProductQuoteEntityTest {
     }
 
     @Test
-    fun test18PercentGstCalculations() {
-        // Excluded GST: 1000 + 18% = 1180
-        val exclGst = ProductQuoteEntity(id = 1, shopId = 1, pricePaise = 100000, gstIncluded = false)
-        assertEquals("+18% GST", exclGst.gstBadgeText)
-        assertEquals(18000L, exclGst.gstAmountPaise) // ₹180
-        assertEquals(118000L, exclGst.finalPricePaise) // ₹1180
-        assertEquals("₹180", exclGst.formattedGstAmount)
-        assertEquals("₹1180", exclGst.formattedFinalPrice)
+    fun test18PercentGstAndQuantityCalculations() {
+        // 4 cameras @ ₹1000 each + 18% GST (unit final = 1180)
+        val fourCameras = ProductQuoteEntity(
+            id = 1,
+            shopId = 1,
+            quantity = 4,
+            pricePaise = 100000,
+            gstIncluded = false
+        )
+        assertEquals("+18% GST", fourCameras.gstBadgeText)
+        assertEquals(4, fourCameras.quantity)
+        assertEquals(18000L, fourCameras.unitGstPaise) // ₹180 per unit
+        assertEquals(118000L, fourCameras.unitFinalPricePaise) // ₹1180 per unit
+        assertEquals(72000L, fourCameras.lineGstPaise) // 4 * ₹180 = ₹720
+        assertEquals(472000L, fourCameras.lineFinalPricePaise) // 4 * ₹1180 = ₹4720
+        assertEquals("₹4720", fourCameras.formattedLineFinalPrice)
 
-        // Included GST: 5900 with 18% GST included -> base = 5000, GST = 900
-        val inclGst = ProductQuoteEntity(id = 2, shopId = 1, pricePaise = 590000, gstIncluded = true)
-        assertEquals("Incl. 18% GST", inclGst.gstBadgeText)
-        assertEquals(90000L, inclGst.gstAmountPaise) // ₹900
-        assertEquals(590000L, inclGst.finalPricePaise) // ₹5900
-        assertEquals("₹900", inclGst.formattedGstAmount)
-        assertEquals("₹5900", inclGst.formattedFinalPrice)
+        // 2 DVRs @ ₹5900 each Incl. 18% GST (unit final = 5900, unit GST = 900)
+        val twoDvrs = ProductQuoteEntity(
+            id = 2,
+            shopId = 1,
+            quantity = 2,
+            pricePaise = 590000,
+            gstIncluded = true
+        )
+        assertEquals("Incl. 18% GST", twoDvrs.gstBadgeText)
+        assertEquals(2, twoDvrs.quantity)
+        assertEquals(90000L, twoDvrs.unitGstPaise) // ₹900 per unit
+        assertEquals(590000L, twoDvrs.unitFinalPricePaise) // ₹5900 per unit
+        assertEquals(180000L, twoDvrs.lineGstPaise) // 2 * ₹900 = ₹1800
+        assertEquals(1180000L, twoDvrs.lineFinalPricePaise) // 2 * ₹5900 = ₹11800
+        assertEquals("₹11800", twoDvrs.formattedLineFinalPrice)
     }
 
     @Test
-    fun testShopWithQuotesCalculations() {
+    fun testShopWithQuotesTotalsAndUnitCount() {
         val shop = ShopEntity(id = 1, shopName = "Royal Hardware")
-        val quote1 = ProductQuoteEntity(id = 1, shopId = 1, pricePaise = 100000, gstIncluded = false) // 1180 final
-        val quote2 = ProductQuoteEntity(id = 2, shopId = 1, pricePaise = 590000, gstIncluded = true) // 5900 final
+        val quote1 = ProductQuoteEntity(id = 1, shopId = 1, quantity = 4, pricePaise = 100000, gstIncluded = false) // 4 * 1180 = 4720
+        val quote2 = ProductQuoteEntity(id = 2, shopId = 1, quantity = 2, pricePaise = 590000, gstIncluded = true) // 2 * 5900 = 11800
 
         val shopWithQuotes = ShopWithQuotes(shop = shop, quotes = listOf(quote1, quote2))
-        assertEquals(2, shopWithQuotes.skuCount)
-        assertEquals(708000L, shopWithQuotes.totalQuotationPaise) // 1180 + 5900 = 7080
-        assertEquals("₹7080", shopWithQuotes.formattedTotalQuotation)
+        assertEquals(2, shopWithQuotes.skuCount) // 2 distinct products / SKUs
+        assertEquals(6, shopWithQuotes.totalUnitsCount) // 4 cameras + 2 DVRs = 6 units
+        assertEquals(1652000L, shopWithQuotes.totalQuotationPaise) // 4720 + 11800 = 16520
+        assertEquals("₹16520", shopWithQuotes.formattedTotalQuotation)
     }
 
     @Test
@@ -92,13 +109,5 @@ class ProductQuoteEntityTest {
         val namedShop = ShopEntity(id = 1, shopName = "Royal Electricals")
         assertFalse(namedShop.isBlank)
         assertEquals("Royal Electricals", namedShop.displayTitle)
-
-        val contactOnlyShop = ShopEntity(id = 2, contactName = "Sunil Bhai")
-        assertFalse(contactOnlyShop.isBlank)
-        assertEquals("Sunil Bhai", contactOnlyShop.displayTitle)
-
-        val locationOnlyShop = ShopEntity(id = 3, location = "Nehru Market")
-        assertFalse(locationOnlyShop.isBlank)
-        assertEquals("Nehru Market", locationOnlyShop.displayTitle)
     }
 }

@@ -332,8 +332,8 @@ fun ShopInquiryScreen(
             shopNameSuggestions = shopSuggestions,
             productNameSuggestions = productSuggestions,
             onFindShop = { name -> viewModel.findShopByName(name) },
-            onSaveInquiry = { shop, mobile, contact, product, brand, price, gst, notes ->
-                viewModel.saveQuickInquiry(shop, mobile, contact, product, brand, price, gst, notes)
+            onSaveInquiry = { shop, mobile, contact, product, brand, qty, price, gst, notes ->
+                viewModel.saveQuickInquiry(shop, mobile, contact, product, brand, qty, price, gst, notes)
             },
             onDismiss = { viewModel.dismissQuickAddSheet() }
         )
@@ -345,8 +345,8 @@ fun ShopInquiryScreen(
         EditQuoteDialog(
             quote = quote,
             summary = summary,
-            onSave = { quoteId, prodName, brand, priceStr, gst, notes ->
-                viewModel.saveEditedQuote(quoteId, prodName, brand, priceStr, gst, notes)
+            onSave = { quoteId, prodName, brand, qty, priceStr, gst, notes ->
+                viewModel.saveEditedQuote(quoteId, prodName, brand, qty, priceStr, gst, notes)
             },
             onDismiss = { viewModel.dismissEditQuote() }
         )

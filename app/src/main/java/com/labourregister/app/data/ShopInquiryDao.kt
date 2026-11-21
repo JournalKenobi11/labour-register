@@ -56,6 +56,9 @@ interface ShopInquiryDao {
     @Query("SELECT DISTINCT productName FROM product_quotes WHERE productName != '' ORDER BY productName ASC")
     fun getDistinctProductNames(): Flow<List<String>>
 
+    @Query("UPDATE product_quotes SET productName = :name, brandOrModel = :brand, quantity = :quantity, pricePaise = :paise, gstIncluded = :gst, notes = :notes, updatedAt = :updatedAt WHERE id = :id")
+    suspend fun updateQuoteFull(id: Long, name: String, brand: String, quantity: Int, paise: Long?, gst: Boolean, notes: String, updatedAt: Long = System.currentTimeMillis())
+
     @Query("UPDATE product_quotes SET productName = :name, updatedAt = :updatedAt WHERE id = :id")
     suspend fun updateQuoteProductName(id: Long, name: String, updatedAt: Long = System.currentTimeMillis())
 
