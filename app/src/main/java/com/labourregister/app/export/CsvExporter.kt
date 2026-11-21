@@ -11,7 +11,6 @@ import java.nio.charset.StandardCharsets
 object CsvExporter {
 
     private const val CSV_HEADER = "name,skill,village,daily_charge_inr,mobile_number"
-    private const val SHOP_CSV_HEADER = "Shop Name,Contact Person,Mobile Number,Product Name,Brand / Model,Quantity,Unit Price (INR),GST Status,18% GST (INR),Line Total (INR),Notes"
 
     /**
      * Exports a list of LabourerEntity records to the given OutputStream in CSV format.
@@ -41,10 +40,11 @@ object CsvExporter {
     }
 
     /**
-     * Exports a list of ShopWithQuotes in a robust, standard 11-column tabular format:
-     * - Consistent 11 columns across all rows (Shop Name, Contact, Mobile, Product details, Line Total)
-     * - Safe text without leading '=' / '+' / '-' to prevent formula injection (#NAME?, #ERROR!)
-     * - Pure numerical values for financial amounts without currency symbols
+     * Exports a list of ShopWithQuotes in a human-friendly sectioned format per shop:
+     * - Distinct shop header banner with contact and mobile info
+     * - Table columns for product quotes without repeating shop info per line
+     * - Safe characters (underscores instead of '=', 'Excl./Incl. 18% GST' instead of '+18%', 'TOTAL:' instead of '---')
+     * - Standard 'Rs.' currency prefix to prevent mojibake/corrupted glyphs across all CSV viewers
      * - Clean subtotal row per shop without grand summary
      */
     fun exportShopInquiries(shopsWithQuotes: List<ShopWithQuotes>, outputStream: OutputStream) {
@@ -52,21 +52,35 @@ object CsvExporter {
         outputStream.write(bom)
 
         val writer = BufferedWriter(OutputStreamWriter(outputStream, StandardCharsets.UTF_8))
-        writer.write(SHOP_CSV_HEADER)
-        writer.write("\r\n")
+
+        val productHeader = "Product Name,Brand / Model,Quantity,Unit Price (INR),GST Status,18% GST (INR),Line Total (INR),Notes"
+        val divider = "_________________________________________________________________________________________________________"
 
         for ((index, shopWithQuotes) in shopsWithQuotes.withIndex()) {
             val shop = shopWithQuotes.shop
             val quotes = shopWithQuotes.quotes
 
-            val shopNameEsc = escapeField(shop.shopName)
-            val contactEsc = escapeField(shop.contactName)
-            val mobileEsc = escapeField(shop.mobileNumber)
+            val contactInfo = buildString {
+                append("SHOP: ${shop.displayTitle}")
+                if (shop.contactName.isNotBlank()) append(" | Contact: ${shop.contactName.trim()}")
+                if (shop.mobileNumber.isNotBlank()) append(" | Mobile: ${shop.mobileNumber.trim()}")
+            }
+
+            // Section divider and Shop Banner (using underscores to avoid Excel/Sheets formula parse errors)
+            writer.write(escapeField(divider))
+            writer.write("\r\n")
+            writer.write(escapeField(contactInfo))
+            writer.write("\r\n")
+            writer.write(escapeField(divider))
+            writer.write("\r\n")
 
             if (quotes.isEmpty()) {
-                writer.write("$shopNameEsc,$contactEsc,$mobileEsc,(No product quotes logged),,,,,,,")
+                writer.write("(No product quotes logged for this shop)")
                 writer.write("\r\n")
             } else {
+                writer.write(productHeader)
+                writer.write("\r\n")
+
                 for (quote in quotes) {
                     val prodEsc = escapeField(quote.productName)
                     val brandEsc = escapeField(quote.brandOrModel)
@@ -77,18 +91,17 @@ object CsvExporter {
                     val lineFinalPriceEsc = escapeField(quote.lineFinalPriceRupeesString)
                     val notesEsc = escapeField(quote.notes)
 
-                    writer.write("$shopNameEsc,$contactEsc,$mobileEsc,$prodEsc,$brandEsc,$qtyEsc,$quotedPriceEsc,$gstStatusEsc,$lineGstEsc,$lineFinalPriceEsc,$notesEsc")
+                    writer.write("$prodEsc,$brandEsc,$qtyEsc,$quotedPriceEsc,$gstStatusEsc,$lineGstEsc,$lineFinalPriceEsc,$notesEsc")
                     writer.write("\r\n")
                 }
 
-                // Shop Subtotal Line (clean 11 columns, pure numbers, no formula characters or rupee symbols)
+                // Shop Subtotal Line (safe text, Rs. prefix for broad viewer compatibility, no formula characters)
                 val shopTitleEsc = escapeField("TOTAL: ${shop.displayTitle}")
-                val skuSummary = escapeField("${shopWithQuotes.skuCount} SKUs (${shopWithQuotes.totalUnitsCount} Units)")
-                val totalQty = shopWithQuotes.totalUnitsCount.toString()
-                val totalGst = shopWithQuotes.totalGstRupeesString
-                val totalQuotation = shopWithQuotes.totalQuotationRupeesString
+                val skuText = "${shopWithQuotes.skuCount} SKUs (${shopWithQuotes.totalUnitsCount} Units)"
+                val totalGstText = "Total GST: Rs. ${shopWithQuotes.totalGstRupeesString}"
+                val totalQuotationText = "Shop Quotation: Rs. ${shopWithQuotes.totalQuotationRupeesString}"
 
-                writer.write("$shopTitleEsc,$contactEsc,$mobileEsc,$skuSummary,,$totalQty,,Total GST,$totalGst,$totalQuotation,")
+                writer.write("$shopTitleEsc,,$skuText,,,$totalGstText,$totalQuotationText,")
                 writer.write("\r\n")
             }
 
