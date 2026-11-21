@@ -18,29 +18,43 @@ import com.labourregister.app.ui.navigation.AppBottomBar
 import com.labourregister.app.ui.navigation.Screen
 import com.labourregister.app.ui.screens.AddLabourScreen
 import com.labourregister.app.ui.screens.LabourRegisterScreen
+import com.labourregister.app.ui.screens.ShopInquiryScreen
 import com.labourregister.app.ui.theme.LabourRegisterTheme
 import com.labourregister.app.viewmodel.LabourViewModel
 import com.labourregister.app.viewmodel.LabourViewModelFactory
+import com.labourregister.app.viewmodel.ShopInquiryViewModel
+import com.labourregister.app.viewmodel.ShopInquiryViewModelFactory
 
 class MainActivity : ComponentActivity() {
 
-    private val viewModel: LabourViewModel by viewModels {
+    private val labourViewModel: LabourViewModel by viewModels {
         val app = application as LabourApplication
         LabourViewModelFactory(app.repository)
+    }
+
+    private val inquiryViewModel: ShopInquiryViewModel by viewModels {
+        val app = application as LabourApplication
+        ShopInquiryViewModelFactory(app.shopInquiryRepository)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             LabourRegisterTheme {
-                MainAppContent(viewModel = viewModel)
+                MainAppContent(
+                    labourViewModel = labourViewModel,
+                    inquiryViewModel = inquiryViewModel
+                )
             }
         }
     }
 }
 
 @Composable
-fun MainAppContent(viewModel: LabourViewModel) {
+fun MainAppContent(
+    labourViewModel: LabourViewModel,
+    inquiryViewModel: ShopInquiryViewModel
+) {
     var currentScreen by remember { mutableStateOf(Screen.ADD_LABOUR) }
 
     Scaffold(
@@ -61,10 +75,13 @@ fun MainAppContent(viewModel: LabourViewModel) {
         ) {
             when (currentScreen) {
                 Screen.ADD_LABOUR -> {
-                    AddLabourScreen(viewModel = viewModel)
+                    AddLabourScreen(viewModel = labourViewModel)
                 }
                 Screen.LABOUR_REGISTER -> {
-                    LabourRegisterScreen(viewModel = viewModel)
+                    LabourRegisterScreen(viewModel = labourViewModel)
+                }
+                Screen.INQUIRIES -> {
+                    ShopInquiryScreen(viewModel = inquiryViewModel)
                 }
             }
         }

@@ -3,8 +3,10 @@ package com.labourregister.app.ui.navigation
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.outlined.Assignment
 import androidx.compose.material.icons.outlined.PersonAdd
+import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.ui.graphics.vector.ImageVector
 
 enum class Screen(
@@ -21,5 +23,10 @@ enum class Screen(
         title = "Labour Register",
         selectedIcon = Icons.Filled.Assignment,
         unselectedIcon = Icons.Outlined.Assignment
+    ),
+    INQUIRIES(
+        title = "Inquiries",
+        selectedIcon = Icons.Filled.Storefront,
+        unselectedIcon = Icons.Outlined.Storefront
     )
 }
